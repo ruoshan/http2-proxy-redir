@@ -14,6 +14,7 @@ import (
 type ReadWriteHalfCloser interface {
 	Read([]byte) (int, error)
 	Write([]byte) (int, error)
+	Close() error
 	CloseRead() error
 	CloseWrite() error
 }
@@ -57,9 +58,10 @@ func (h *HttpTunnel) CloseWrite() error {
 }
 
 type HttpProxy struct {
-	user   string
-	passwd string
-	httpc  *http.Client
+	user      string
+	passwd    string
+	httpc     *http.Client
+	transport *http2.Transport
 }
 
 func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
@@ -77,9 +79,10 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 		Transport: tp,
 	}
 	return &HttpProxy{
-		user:   user,
-		passwd: passwd,
-		httpc:  cli,
+		user:      user,
+		passwd:    passwd,
+		httpc:     cli,
+		transport: tp,
 	}
 }
 
@@ -111,4 +114,8 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	}
 	// Preamble done
 	return NewHttpTunnel(resp.Body, pw), nil
+}
+
+func (p *HttpProxy) CloseIdleConnections() {
+	p.transport.CloseIdleConnections()
 }

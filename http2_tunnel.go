@@ -29,12 +29,13 @@ func (h *HttpTunnel) Write(p []byte) (int, error) {
 }
 
 func (h *HttpTunnel) Close() error {
-	e1 := h.r.Close()
-	e2 := h.w.Close()
-	if e1 == nil {
-		return e2
+	e1 := h.w.Close()
+	io.ReadAll(h.r) // discard unread data
+	e2 := h.r.Close()
+	if e1 == nil && e2 == nil {
+		return nil
 	}
-	return e1
+	return errors.New(e1.Error() + " & " + e2.Error())
 }
 
 type HttpProxy struct {
@@ -52,7 +53,7 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 			InsecureSkipVerify: true,
 		},
 		PingTimeout:     3 * time.Second,
-		ReadIdleTimeout: 3 * time.Second,
+		ReadIdleTimeout: 10 * time.Second,
 	}
 	cli := &http.Client{
 		Transport: tp,

@@ -26,22 +26,26 @@ var (
 
 var pending uint32
 
-func forward(src io.ReadWriteCloser, dst io.ReadWriteCloser) {
+func forward(downstream *net.TCPConn, upstream ReadWriteHalfCloser) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	atomic.AddUint32(&pending, 1)
-	go func() {
-		io.Copy(src, dst)
-		src.Close()
+	go func() { // upstream => downstream
+		io.Copy(downstream, upstream)
+		upstream.CloseRead()
+		downstream.CloseWrite()
 		wg.Done()
+		debug("X upstream => downstream")
 	}()
-	go func() {
-		io.Copy(dst, src)
-		dst.Close()
+	go func() { // downstream => upstream
+		io.Copy(upstream, downstream)
+		downstream.CloseRead()
+		upstream.CloseWrite()
 		wg.Done()
+		debug("X downstream => upstream")
 	}()
 	wg.Wait()
-	atomic.AddUint32(&pending, ^uint32(0))
+	atomic.AddUint32(&pending, ^uint32(0)) // decreased by 1
 }
 
 func sigHandler(f func()) {

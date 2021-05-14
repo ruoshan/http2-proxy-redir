@@ -11,10 +11,19 @@ import (
 	"golang.org/x/net/http2"
 )
 
-type HttpTunnel struct {
-	r io.ReadCloser
-	w io.WriteCloser
+type ReadWriteHalfCloser interface {
+	Read([]byte) (int, error)
+	Write([]byte) (int, error)
+	CloseRead() error
+	CloseWrite() error
 }
+
+type HttpTunnel struct {
+	r io.ReadCloser  // Response.Body
+	w io.WriteCloser // pipe to Request.Body
+}
+
+var _ ReadWriteHalfCloser = &HttpTunnel{} // Ensure HttpTunnel implement the interface
 
 func NewHttpTunnel(r io.ReadCloser, w io.WriteCloser) *HttpTunnel {
 	return &HttpTunnel{r: r, w: w}
@@ -36,6 +45,15 @@ func (h *HttpTunnel) Close() error {
 		return nil
 	}
 	return errors.New(e1.Error() + " & " + e2.Error())
+}
+
+func (h *HttpTunnel) CloseRead() error {
+	io.ReadAll(h.r) // discard unread data
+	return h.r.Close()
+}
+
+func (h *HttpTunnel) CloseWrite() error {
+	return h.w.Close()
 }
 
 type HttpProxy struct {

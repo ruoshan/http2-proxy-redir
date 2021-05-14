@@ -64,7 +64,7 @@ func parseArgs() {
 		passwd = s
 		return nil
 	})
-	flag.StringVar(&localAddr, "l", "127.0.0.1:1086", "local addr to bind")
+	flag.StringVar(&localAddr, "l", ":1086", "local addr to bind")
 	flag.BoolVar(&showDebug, "d", false, "show debug log")
 	flag.Parse()
 }

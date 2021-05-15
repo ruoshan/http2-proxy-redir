@@ -91,12 +91,15 @@ func main() {
 
 	proxy := NewHttpProxy(proxyAddr, user, passwd)
 
+	// Dump running goroutine count
 	go func() {
+		if !showDebug {
+			return
+		}
 		tick := time.NewTicker(5 * time.Second)
 		for {
 			<-tick.C
-			debug("Pending: W=%d, R=%d", pendingW, pendingR)
-			proxy.CloseIdleConnections()
+			debug("W=%d, R=%d", pendingW, pendingR)
 		}
 	}()
 

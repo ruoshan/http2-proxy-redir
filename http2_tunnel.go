@@ -6,7 +6,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"reflect"
 	"time"
+	"unsafe"
 
 	"golang.org/x/net/http2"
 )
@@ -57,6 +59,39 @@ func (h *HttpTunnel) CloseWrite() error {
 	return h.w.Close()
 }
 
+// A hacky way to get the underlying ClientConnPool in net/http2 pkg
+// and change the connection cache key to proxy's addr for every req
+type clientConnPoolMock struct {
+	origPool  http2.ClientConnPool
+	proxyAddr string
+}
+
+var _ http2.ClientConnPool = &clientConnPoolMock{}
+
+// MockClientConnPool use unsafe reflection to change the http2.Transport's
+// connPool by wrap the original connPool with the GetClientConn method changed.
+// the method is changed to always use the proxy's address as cache key
+func MockClientConnPool(tp *http2.Transport, proxyAddr string) {
+	tp.CloseIdleConnections() // Calling this method only to initialize the transport's default client pool
+	v := reflect.ValueOf(tp).Elem()
+	f := v.FieldByName("connPoolOrDef")
+	orig := reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem()
+	cp := &clientConnPoolMock{
+		origPool:  orig.Interface().(http2.ClientConnPool),
+		proxyAddr: proxyAddr,
+	}
+	orig.Set(reflect.ValueOf(cp))
+}
+
+// Ignore the _addr, use proxyAddr instead
+func (cp *clientConnPoolMock) GetClientConn(req *http.Request, _addr string) (*http2.ClientConn, error) {
+	return cp.origPool.GetClientConn(req, cp.proxyAddr)
+}
+
+func (cp *clientConnPoolMock) MarkDead(c *http2.ClientConn) {
+	cp.origPool.MarkDead(c)
+}
+
 type HttpProxy struct {
 	user      string
 	passwd    string
@@ -66,7 +101,8 @@ type HttpProxy struct {
 
 func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 	tp := &http2.Transport{
-		DialTLS: func(network, _ string, cfg *tls.Config) (net.Conn, error) {
+		DialTLS: func(network, _addr string, cfg *tls.Config) (net.Conn, error) {
+			// Ignore the _addr, use proxyAddr instead
 			return tls.Dial(network, proxyAddr, cfg)
 		},
 		TLSClientConfig: &tls.Config{
@@ -75,6 +111,7 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 		PingTimeout:     3 * time.Second,
 		ReadIdleTimeout: 10 * time.Second,
 	}
+	MockClientConnPool(tp, proxyAddr)
 	cli := &http.Client{
 		Transport: tp,
 	}

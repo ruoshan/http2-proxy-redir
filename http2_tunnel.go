@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"reflect"
@@ -131,15 +133,38 @@ func (p *HttpProxy) SetAuth(req *http.Request) error {
 	return nil
 }
 
+func cancelWhenTimeout(cancel context.CancelFunc, timeout time.Duration, stop <-chan struct{}) {
+	select {
+	case <-time.After(timeout):
+		cancel()
+	case <-stop:
+		return
+	}
+}
+
 func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	// Preamble CONNECT request
 	pr, pw := io.Pipe()
-	req, err := http.NewRequest(http.MethodConnect, targetUrl, pr)
+	ctx, cancel := context.WithCancel(context.Background())
+	stopTimeout := make(chan struct{})
+	// The cancelWhenTimeout goroutine is used to timeout the Preamble CONNECT req,
+	// but we don't want to create any timeout for the tunnel. That's why we don't pass
+	// a context.WithTimeout ctx to the NewRequestWithContext.
+	go cancelWhenTimeout(cancel, 10*time.Second, stopTimeout)
+	req, err := http.NewRequestWithContext(ctx, http.MethodConnect, targetUrl, pr)
 	if err != nil {
+		close(stopTimeout)
 		return nil, err
 	}
 	p.SetAuth(req)
 	resp, err := p.httpc.Do(req)
+	close(stopTimeout)
+	defer func() {
+		if err != nil && resp != nil {
+			ioutil.ReadAll(resp.Body)
+			resp.Body.Close()
+		}
+	}()
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +176,4 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	}
 	// Preamble done
 	return NewHttpTunnel(resp.Body, pw), nil
-}
-
-func (p *HttpProxy) CloseIdleConnections() {
-	p.transport.CloseIdleConnections()
 }

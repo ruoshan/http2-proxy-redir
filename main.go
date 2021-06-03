@@ -2,9 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
@@ -26,6 +29,7 @@ var (
 
 var pendingR uint32
 var pendingW uint32
+var pendingC uint32
 
 func forward(downstream *net.TCPConn, upstream ReadWriteHalfCloser) {
 	wg := sync.WaitGroup{}
@@ -99,8 +103,16 @@ func main() {
 		tick := time.NewTicker(5 * time.Second)
 		for {
 			<-tick.C
-			debug("W=%d, R=%d", pendingW, pendingR)
+			debug("W=%d, R=%d, C=%d", pendingW, pendingR, pendingC)
 		}
+	}()
+
+	// pprof
+	go func() {
+		http.HandleFunc("/pending", func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(fmt.Sprintf("W=%d, R=%d, C=%d\n", pendingW, pendingR, pendingC)))
+		})
+		http.ListenAndServe(":6060", nil)
 	}()
 
 	for {
@@ -109,6 +121,9 @@ func main() {
 			return
 		}
 		go func(c *net.TCPConn) {
+			atomic.AddUint32(&pendingC, 1)
+			defer c.Close()
+
 			a, err := origdst.GetOriginalDst(c)
 			if err != nil {
 				debug("Failed to get origdst: %s", err)
@@ -122,6 +137,7 @@ func main() {
 			}
 			forward(c, tunnel)
 			debug("X %s => %s", c.RemoteAddr(), a)
+			atomic.AddUint32(&pendingC, ^uint32(0)) // decreased by 1
 		}(c)
 	}
 }

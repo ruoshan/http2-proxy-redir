@@ -99,6 +99,8 @@ type HttpProxy struct {
 	passwd    string
 	httpc     *http.Client
 	transport *http2.Transport
+	backoff   bool
+	bkoff_ch  chan struct{}
 }
 
 func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
@@ -117,12 +119,16 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 	cli := &http.Client{
 		Transport: tp,
 	}
-	return &HttpProxy{
+	p := &HttpProxy{
 		user:      user,
 		passwd:    passwd,
 		httpc:     cli,
 		transport: tp,
+		backoff:   false,
+		bkoff_ch:  make(chan struct{}, 5),
 	}
+	go p.backoff_watchdog()
+	return p
 }
 
 func (p *HttpProxy) SetAuth(req *http.Request) error {
@@ -133,16 +139,42 @@ func (p *HttpProxy) SetAuth(req *http.Request) error {
 	return nil
 }
 
-func cancelWhenTimeout(cancel context.CancelFunc, timeout time.Duration, stop <-chan struct{}) {
+func (p *HttpProxy) cancelWhenTimeout(cancel context.CancelFunc, timeout time.Duration, stop <-chan struct{}) {
 	select {
 	case <-time.After(timeout):
 		cancel()
+		p.backoff_hint()
 	case <-stop:
 		return
 	}
 }
 
+func (p *HttpProxy) backoff_hint() {
+	p.bkoff_ch <- struct{}{}
+}
+
+func (p *HttpProxy) backoff_watchdog() {
+	count := 0
+	tick := time.NewTicker(time.Minute)
+	for {
+		select {
+		case <-p.bkoff_ch:
+			count += 1
+			if count > 3 {
+				p.backoff = true
+				count = 0
+				<-tick.C // skip this tick
+			}
+		case <-tick.C:
+			p.backoff = false
+		}
+	}
+}
+
 func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
+	if p.backoff {
+		return nil, errors.New("Backoff")
+	}
 	// Preamble CONNECT request
 	pr, pw := io.Pipe()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -150,7 +182,7 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	// The cancelWhenTimeout goroutine is used to timeout the Preamble CONNECT req,
 	// but we don't want to create any timeout for the tunnel. That's why we don't pass
 	// a context.WithTimeout ctx to the NewRequestWithContext.
-	go cancelWhenTimeout(cancel, 10*time.Second, stopTimeout)
+	go p.cancelWhenTimeout(cancel, 3*time.Second, stopTimeout)
 	req, err := http.NewRequestWithContext(ctx, http.MethodConnect, targetUrl, pr)
 	if err != nil {
 		close(stopTimeout)

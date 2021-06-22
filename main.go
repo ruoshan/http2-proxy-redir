@@ -122,6 +122,7 @@ func main() {
 		}
 		go func(c *net.TCPConn) {
 			atomic.AddUint32(&pendingC, 1)
+			defer atomic.AddUint32(&pendingC, ^uint32(0)) // decreased by 1
 			defer c.Close()
 
 			a, err := origdst.GetOriginalDst(c)
@@ -137,7 +138,6 @@ func main() {
 			}
 			forward(c, tunnel)
 			debug("X %s => %s", c.RemoteAddr(), a)
-			atomic.AddUint32(&pendingC, ^uint32(0)) // decreased by 1
 		}(c)
 	}
 }

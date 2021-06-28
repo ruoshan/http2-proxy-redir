@@ -182,7 +182,7 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	// The cancelWhenTimeout goroutine is used to timeout the Preamble CONNECT req,
 	// but we don't want to create any timeout for the tunnel. That's why we don't pass
 	// a context.WithTimeout ctx to the NewRequestWithContext.
-	go p.cancelWhenTimeout(cancel, 3*time.Second, stopTimeout)
+	go p.cancelWhenTimeout(func() { pw.Close(); cancel() }, 3*time.Second, stopTimeout)
 	req, err := http.NewRequestWithContext(ctx, http.MethodConnect, targetUrl, pr)
 	if err != nil {
 		close(stopTimeout)

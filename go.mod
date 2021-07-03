@@ -3,6 +3,6 @@ module github.com/ruoshan/http2-proxy-redir
 go 1.16
 
 require (
-	github.com/ruoshan/origdst v0.0.0-20210509190936-b26460c2f39f // indirect
+	github.com/ruoshan/origdst v0.0.0-20210513183722-d483368af66e
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 )

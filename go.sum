@@ -1,5 +1,7 @@
 github.com/ruoshan/origdst v0.0.0-20210509190936-b26460c2f39f h1:Ax/Q+ghsAG8iO6cL8CAje6oO/TFN85qp0m/Q9Uqa9bY=
 github.com/ruoshan/origdst v0.0.0-20210509190936-b26460c2f39f/go.mod h1:vMuiUPuIQ7Z2xiGdjpDMHzPHozv8PQwSNbFCxOFKkXg=
+github.com/ruoshan/origdst v0.0.0-20210513183722-d483368af66e h1:1pryuxw3tFKdro5BNPlnRMxkXx91qihm15KgFL65Q18=
+github.com/ruoshan/origdst v0.0.0-20210513183722-d483368af66e/go.mod h1:vMuiUPuIQ7Z2xiGdjpDMHzPHozv8PQwSNbFCxOFKkXg=
 golang.org/x/net v0.0.0-20210510120150-4163338589ed h1:p9UgmWI9wKpfYmgaV/IZKGdXc5qEK45tDwwwDyjS26I=
 golang.org/x/net v0.0.0-20210510120150-4163338589ed/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/net v0.0.0-20210614182718-04defd469f4e h1:XpT3nA5TvE525Ne3hInMh6+GETgn27Zfm9dxsThnX2Q=

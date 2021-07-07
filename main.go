@@ -25,6 +25,8 @@ var (
 
 	localAddr string
 	showDebug bool
+	timeout   int
+	backoff   int
 )
 
 var pendingR uint32
@@ -73,6 +75,8 @@ func parseArgs() {
 		passwd = s
 		return nil
 	})
+	flag.IntVar(&timeout, "t", 10, "CONNECT req timeout (second)")
+	flag.IntVar(&backoff, "b", 3, "number of req timeout to trigger backoff")
 	flag.StringVar(&localAddr, "l", ":1086", "local addr to bind")
 	flag.BoolVar(&showDebug, "d", false, "show debug log")
 	flag.Parse()
@@ -94,6 +98,10 @@ func main() {
 	})
 
 	proxy := NewHttpProxy(proxyAddr, user, passwd)
+	proxy.Config(
+		WithTimeout(timeout),
+		WithBackoffThreshold(backoff),
+	)
 
 	// Dump running goroutine count
 	go func() {

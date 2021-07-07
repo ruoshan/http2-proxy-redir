@@ -101,6 +101,8 @@ type HttpProxy struct {
 	transport *http2.Transport
 	backoff   bool
 	bkoff_ch  chan struct{}
+	bkoff_n   int // threshold
+	timeout   time.Duration
 }
 
 func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
@@ -126,9 +128,32 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 		transport: tp,
 		backoff:   false,
 		bkoff_ch:  make(chan struct{}, 5),
+		bkoff_n:   3,
+		timeout:   10 * time.Second,
 	}
 	go p.backoff_watchdog()
 	return p
+}
+
+// Configs helper
+type cfgFunc func(*HttpProxy)
+
+func WithTimeout(sec int) cfgFunc {
+	return func(p *HttpProxy) {
+		p.timeout = time.Duration(sec) * time.Second
+	}
+}
+
+func WithBackoffThreshold(n int) cfgFunc {
+	return func(p *HttpProxy) {
+		p.bkoff_n = n
+	}
+}
+
+func (p *HttpProxy) Config(funcs ...cfgFunc) {
+	for _, f := range funcs {
+		f(p)
+	}
 }
 
 func (p *HttpProxy) SetAuth(req *http.Request) error {
@@ -139,9 +164,9 @@ func (p *HttpProxy) SetAuth(req *http.Request) error {
 	return nil
 }
 
-func (p *HttpProxy) cancelWhenTimeout(cancel context.CancelFunc, timeout time.Duration, stop <-chan struct{}) {
+func (p *HttpProxy) cancelWhenTimeout(cancel context.CancelFunc, stop <-chan struct{}) {
 	select {
-	case <-time.After(timeout):
+	case <-time.After(p.timeout):
 		cancel()
 		p.backoff_hint()
 	case <-stop:
@@ -160,7 +185,7 @@ func (p *HttpProxy) backoff_watchdog() {
 		select {
 		case <-p.bkoff_ch:
 			count += 1
-			if count > 3 {
+			if count > p.bkoff_n {
 				p.backoff = true
 				count = 0
 				<-tick.C // skip this tick
@@ -182,7 +207,7 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	// The cancelWhenTimeout goroutine is used to timeout the Preamble CONNECT req,
 	// but we don't want to create any timeout for the tunnel. That's why we don't pass
 	// a context.WithTimeout ctx to the NewRequestWithContext.
-	go p.cancelWhenTimeout(func() { pw.Close(); cancel() }, 3*time.Second, stopTimeout)
+	go p.cancelWhenTimeout(func() { pw.Close(); cancel() }, stopTimeout)
 	req, err := http.NewRequestWithContext(ctx, http.MethodConnect, targetUrl, pr)
 	if err != nil {
 		close(stopTimeout)

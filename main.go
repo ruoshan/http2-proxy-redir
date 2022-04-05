@@ -140,6 +140,7 @@ func main() {
 				debug("Failed to tunnel: %s", err)
 				return
 			}
+			debug("PG %s", pg.Head())
 			forward(c, tunnel)
 			debug("X %s => %s", c.RemoteAddr(), a)
 		}(c)

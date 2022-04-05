@@ -7,6 +7,7 @@ import (
 )
 
 type ProxyProvider interface {
+	Name() string
 	Ready() bool
 	DialTunnel(targetUrl string) (*HttpTunnel, error)
 }
@@ -52,4 +53,8 @@ func (pg *ProxyGroup) reorderByHealth() {
 		}
 		return pg.proxies[i].Ready()
 	})
+}
+
+func (pg *ProxyGroup) Head() string {
+	return pg.proxies[0].Name()
 }

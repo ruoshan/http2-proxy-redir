@@ -97,6 +97,7 @@ func (cp *clientConnPoolMock) MarkDead(c *http2.ClientConn) {
 type HttpProxy struct {
 	user      string
 	passwd    string
+	proxyAddr string
 	httpc     *http.Client
 	transport *http2.Transport
 	backoff   bool
@@ -124,6 +125,7 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 	p := &HttpProxy{
 		user:      user,
 		passwd:    passwd,
+		proxyAddr: proxyAddr,
 		httpc:     cli,
 		transport: tp,
 		backoff:   false,
@@ -223,6 +225,7 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 		}
 	}()
 	if err != nil {
+		p.backoff_hint()
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusProxyAuthRequired {
@@ -237,6 +240,10 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 
 func (p *HttpProxy) Ready() bool {
 	return !p.backoff
+}
+
+func (p *HttpProxy) Name() string {
+	return p.proxyAddr
 }
 
 var _ ProxyProvider = &HttpProxy{}

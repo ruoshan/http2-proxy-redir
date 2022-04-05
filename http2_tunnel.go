@@ -156,7 +156,7 @@ func (p *HttpProxy) Config(funcs ...cfgFunc) {
 	}
 }
 
-func (p *HttpProxy) SetAuth(req *http.Request) error {
+func (p *HttpProxy) setAuth(req *http.Request) error {
 	req.SetBasicAuth(p.user, p.passwd)
 	auth := req.Header.Get("Authorization")
 	req.Header.Set("Proxy-Authorization", auth)
@@ -213,7 +213,7 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 		close(stopTimeout)
 		return nil, err
 	}
-	p.SetAuth(req)
+	p.setAuth(req)
 	resp, err := p.httpc.Do(req)
 	close(stopTimeout)
 	defer func() {
@@ -234,3 +234,9 @@ func (p *HttpProxy) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 	// Preamble done
 	return NewHttpTunnel(resp.Body, pw), nil
 }
+
+func (p *HttpProxy) Ready() bool {
+	return !p.backoff
+}
+
+var _ ProxyProvider = &HttpProxy{}

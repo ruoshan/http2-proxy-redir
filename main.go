@@ -19,9 +19,9 @@ import (
 
 var (
 	// The following three vars might be injected when by `go link` when building with `--ldflags "-X main.user=abc"`
-	user      = "unknown"
-	passwd    = "unknown"
-	proxyAddr = "unknown"
+	user       = "unknown"
+	passwd     = "unknown"
+	proxyAddrs = "unknown"
 
 	localAddr string
 	showDebug bool
@@ -63,8 +63,8 @@ func sigHandler(f func()) {
 }
 
 func parseArgs() {
-	flag.Func("r", "remote proxy address (host:port)", func(s string) error {
-		proxyAddr = s
+	flag.Func("r", "remote proxy addresses (host:port,host2:port2)", func(s string) error {
+		proxyAddrs = s
 		return nil
 	})
 	flag.Func("u", "user name", func(s string) error {
@@ -97,11 +97,7 @@ func main() {
 		l.Close()
 	})
 
-	proxy := NewHttpProxy(proxyAddr, user, passwd)
-	proxy.Config(
-		WithTimeout(timeout),
-		WithBackoffThreshold(backoff),
-	)
+	pg := NewProxyGroup(proxyAddrs)
 
 	// Dump running goroutine count
 	go func() {
@@ -139,7 +135,7 @@ func main() {
 				return
 			}
 			debug("O %s => %s", c.RemoteAddr(), a)
-			tunnel, err := proxy.DialTunnel("https://" + a.String())
+			tunnel, err := pg.DialTunnel("https://" + a.String())
 			if err != nil {
 				debug("Failed to tunnel: %s", err)
 				return

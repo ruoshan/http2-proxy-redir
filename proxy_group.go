@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sort"
 	"strings"
+	"sync"
 )
 
 type ProxyProvider interface {
@@ -14,6 +15,7 @@ type ProxyProvider interface {
 
 type ProxyGroup struct {
 	proxies []ProxyProvider
+	mu      sync.Mutex
 }
 
 func NewProxyGroup(addrs string) *ProxyGroup {
@@ -33,7 +35,8 @@ func NewProxyGroup(addrs string) *ProxyGroup {
 }
 
 func (pg *ProxyGroup) DialTunnel(targetUrl string) (*HttpTunnel, error) {
-	if !pg.proxies[0].Ready() {
+	// only reorder when the first is not healthy and the second is good
+	if len(pg.proxies) > 1 && !pg.proxies[0].Ready() && pg.proxies[1].Ready() {
 		pg.reorderByHealth()
 	}
 
@@ -47,12 +50,14 @@ func (pg *ProxyGroup) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 
 // put all ready proxy in the front
 func (pg *ProxyGroup) reorderByHealth() {
+	pg.mu.Lock()
 	sort.SliceStable(pg.proxies, func(i, j int) bool {
 		if pg.proxies[i].Ready() == pg.proxies[j].Ready() {
 			return false
 		}
 		return pg.proxies[i].Ready()
 	})
+	pg.mu.Unlock()
 }
 
 func (pg *ProxyGroup) Head() string {

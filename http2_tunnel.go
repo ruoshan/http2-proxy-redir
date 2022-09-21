@@ -187,13 +187,14 @@ func (p *HttpProxy) backoff_watchdog() {
 		select {
 		case <-p.bkoff_ch:
 			count += 1
-			if count > p.bkoff_n {
+			if count >= p.bkoff_n {
 				p.backoff = true
 				count = 0
 				<-tick.C // skip this tick
 			}
 		case <-tick.C:
 			p.backoff = false
+			count = 0
 		}
 	}
 }

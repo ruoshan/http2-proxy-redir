@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	mrand "math/rand"
 	"net"
 	"net/http"
 	"reflect"
@@ -72,7 +73,7 @@ var _ http2.ClientConnPool = &clientConnPoolMock{}
 
 // MockClientConnPool use unsafe reflection to change the http2.Transport's
 // connPool by wrap the original connPool with the GetClientConn method changed.
-// the method is changed to always use the proxy's address as cache key
+// the method is changed to always use -the proxy's address as cache key- mocked addrs as cache key
 func MockClientConnPool(tp *http2.Transport, proxyAddr string) {
 	tp.CloseIdleConnections() // Calling this method only to initialize the transport's default client pool
 	v := reflect.ValueOf(tp).Elem()
@@ -85,9 +86,17 @@ func MockClientConnPool(tp *http2.Transport, proxyAddr string) {
 	orig.Set(reflect.ValueOf(cp))
 }
 
-// Ignore the _addr, use proxyAddr instead
+// Ignore the _addr, -use proxyAddr instead-, use one of the mockAddrs to create multiple TCP conns (increase throughput)
 func (cp *clientConnPoolMock) GetClientConn(req *http.Request, _addr string) (*http2.ClientConn, error) {
-	return cp.origPool.GetClientConn(req, cp.proxyAddr)
+	mrand.Seed(time.Now().UnixNano())
+	mockAddrs := []string{
+		"mock1:80",
+		"mock2:80",
+		"mock3:80",
+		"mock4:80",
+	}
+	i := mrand.Intn(len(mockAddrs))
+	return cp.origPool.GetClientConn(req, mockAddrs[i])
 }
 
 func (cp *clientConnPoolMock) MarkDead(c *http2.ClientConn) {

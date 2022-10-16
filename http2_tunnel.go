@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	mrand "math/rand"
@@ -65,38 +66,33 @@ func (h *HttpTunnel) CloseWrite() error {
 // A hacky way to get the underlying ClientConnPool in net/http2 pkg
 // and change the connection cache key to proxy's addr for every req
 type clientConnPoolMock struct {
-	origPool  http2.ClientConnPool
-	proxyAddr string
+	origPool http2.ClientConnPool
 }
 
 var _ http2.ClientConnPool = &clientConnPoolMock{}
 
 // MockClientConnPool use unsafe reflection to change the http2.Transport's
 // connPool by wrap the original connPool with the GetClientConn method changed.
-// the method is changed to always use -the proxy's address as cache key- mocked addrs as cache key
+// the method is changed to always use fixed mocked addrs as cache key
 func MockClientConnPool(tp *http2.Transport, proxyAddr string) {
 	tp.CloseIdleConnections() // Calling this method only to initialize the transport's default client pool
 	v := reflect.ValueOf(tp).Elem()
 	f := v.FieldByName("connPoolOrDef")
 	orig := reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem()
 	cp := &clientConnPoolMock{
-		origPool:  orig.Interface().(http2.ClientConnPool),
-		proxyAddr: proxyAddr,
+		origPool: orig.Interface().(http2.ClientConnPool),
 	}
 	orig.Set(reflect.ValueOf(cp))
 }
 
-// Ignore the _addr, -use proxyAddr instead-, use one of the mockAddrs to create multiple TCP conns (increase throughput)
+const upstreamConnNum = 5
+
+// Ignore the _addr, use one of the mockAddrs to create multiple TCP conns (increase throughput)
 func (cp *clientConnPoolMock) GetClientConn(req *http.Request, _addr string) (*http2.ClientConn, error) {
 	mrand.Seed(time.Now().UnixNano())
-	mockAddrs := []string{
-		"mock1:80",
-		"mock2:80",
-		"mock3:80",
-		"mock4:80",
-	}
-	i := mrand.Intn(len(mockAddrs))
-	return cp.origPool.GetClientConn(req, mockAddrs[i])
+	i := mrand.Intn(upstreamConnNum)
+	mockAddr := fmt.Sprintf("mock-%d:80", i)
+	return cp.origPool.GetClientConn(req, mockAddr)
 }
 
 func (cp *clientConnPoolMock) MarkDead(c *http2.ClientConn) {

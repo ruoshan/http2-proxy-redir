@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -61,5 +62,5 @@ func (pg *ProxyGroup) reorderByHealth() {
 }
 
 func (pg *ProxyGroup) Head() string {
-	return pg.proxies[0].Name()
+	return fmt.Sprintf("%v - %v", pg.proxies[0].Name(), pg.proxies[0].Ready())
 }

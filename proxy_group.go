@@ -51,7 +51,9 @@ func (pg *ProxyGroup) DialTunnel(targetUrl string) (*HttpTunnel, error) {
 
 // put all ready proxy in the front
 func (pg *ProxyGroup) reorderByHealth() {
-	pg.mu.Lock()
+	if !pg.mu.TryLock() {
+		return
+	}
 	sort.SliceStable(pg.proxies, func(i, j int) bool {
 		if pg.proxies[i].Ready() == pg.proxies[j].Ready() {
 			return false
@@ -61,6 +63,10 @@ func (pg *ProxyGroup) reorderByHealth() {
 	pg.mu.Unlock()
 }
 
-func (pg *ProxyGroup) Head() string {
-	return fmt.Sprintf("%v - %v", pg.proxies[0].Name(), pg.proxies[0].Ready())
+func (pg *ProxyGroup) String() string {
+	buf := new(strings.Builder)
+	for _, p := range pg.proxies {
+		fmt.Fprintf(buf, "%v - %v\n", p.Name(), p.Ready())
+	}
+	return buf.String()
 }

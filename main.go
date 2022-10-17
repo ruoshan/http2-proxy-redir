@@ -117,7 +117,7 @@ func main() {
 			w.Write([]byte(fmt.Sprintf("W=%d, R=%d, C=%d\n", pendingW, pendingR, pendingC)))
 		})
 		http.HandleFunc("/head", func(w http.ResponseWriter, _ *http.Request) {
-			w.Write([]byte(fmt.Sprintf("PG head: %v\n", pg.Head())))
+			w.Write([]byte(fmt.Sprintf("%v", pg)))
 		})
 		http.ListenAndServe(":6060", nil)
 	}()
@@ -143,7 +143,6 @@ func main() {
 				debug("Failed to tunnel: %s", err)
 				return
 			}
-			debug("PG %s", pg.Head())
 			forward(c, tunnel)
 			debug("X %s => %s", c.RemoteAddr(), a)
 		}(c)

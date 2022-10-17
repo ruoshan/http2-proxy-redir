@@ -116,6 +116,9 @@ func main() {
 		http.HandleFunc("/pending", func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte(fmt.Sprintf("W=%d, R=%d, C=%d\n", pendingW, pendingR, pendingC)))
 		})
+		http.HandleFunc("/head", func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(fmt.Sprintf("PG head: %v\n", pg.Head())))
+		})
 		http.ListenAndServe(":6060", nil)
 	}()
 

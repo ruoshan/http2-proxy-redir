@@ -113,9 +113,12 @@ type HttpProxy struct {
 
 func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 	tp := &http2.Transport{
-		DialTLS: func(network, _addr string, cfg *tls.Config) (net.Conn, error) {
+		DialTLSContext: func(ctx context.Context, network, _addr string, cfg *tls.Config) (net.Conn, error) {
+			dialer := &net.Dialer{
+				Timeout: time.Duration(3) * time.Second,
+			}
 			// Ignore the _addr, use proxyAddr instead
-			return tls.Dial(network, proxyAddr, cfg)
+			return tls.DialWithDialer(dialer, network, proxyAddr, cfg)
 		},
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,

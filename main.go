@@ -10,6 +10,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -112,6 +113,7 @@ func main() {
 	}()
 
 	// pprof
+	runtime.SetBlockProfileRate(10000)
 	go func() {
 		http.HandleFunc("/pending", func(w http.ResponseWriter, _ *http.Request) {
 			w.Write([]byte(fmt.Sprintf("W=%d, R=%d, C=%d\n", pendingW, pendingR, pendingC)))

@@ -103,6 +103,7 @@ type HttpProxy struct {
 	user      string
 	passwd    string
 	proxyAddr string
+	proxySNI  string
 	httpc     *http.Client
 	transport *http2.Transport
 	backoff   bool
@@ -111,7 +112,7 @@ type HttpProxy struct {
 	timeout   time.Duration
 }
 
-func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
+func NewHttpProxy(proxyAddr, user, passwd, sni string) *HttpProxy {
 	tp := &http2.Transport{
 		DialTLSContext: func(ctx context.Context, network, _addr string, cfg *tls.Config) (net.Conn, error) {
 			dialer := &net.Dialer{
@@ -122,6 +123,7 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 		},
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
+			ServerName:         sni,
 		},
 		PingTimeout:     3 * time.Second,
 		ReadIdleTimeout: 10 * time.Second,
@@ -134,6 +136,7 @@ func NewHttpProxy(proxyAddr, user, passwd string) *HttpProxy {
 		user:      user,
 		passwd:    passwd,
 		proxyAddr: proxyAddr,
+		proxySNI:  sni,
 		httpc:     cli,
 		transport: tp,
 		backoff:   false,
@@ -252,6 +255,9 @@ func (p *HttpProxy) Ready() bool {
 }
 
 func (p *HttpProxy) Name() string {
+	if p.proxySNI != "" {
+		return p.proxySNI
+	}
 	return p.proxyAddr
 }
 

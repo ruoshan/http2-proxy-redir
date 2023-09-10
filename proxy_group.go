@@ -23,7 +23,12 @@ func NewProxyGroup(addrs string) *ProxyGroup {
 	lst := strings.Split(addrs, ",")
 	providers := make([]ProxyProvider, 0, len(lst))
 	for _, a := range lst {
-		proxy := NewHttpProxy(a, user, passwd)
+		addr := strings.SplitN(a, "#", 2)
+		sni := ""
+		if len(addr) == 2 {
+			sni = addr[1]
+		}
+		proxy := NewHttpProxy(addr[0], user, passwd, sni)
 		proxy.Config(
 			WithTimeout(timeout),
 			WithBackoffThreshold(backoff),

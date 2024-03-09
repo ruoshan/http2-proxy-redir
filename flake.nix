@@ -16,22 +16,22 @@
           pname = "http2-proxy-redir";
           version = "dev";
           src = ./.;
-          vendorSha256 = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58";
-        }).overrideAttrs ( old: old // { GOOS="linux"; GOARCH = "mipsle"; CGO_ENABLED = 0; doCheck = false; } );
+          vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
+        }).overrideAttrs ( old: old // { GOPROXY="direct"; GOOS="linux"; GOARCH = "mipsle"; CGO_ENABLED = 0; doCheck = false; } );
 
         packages.arm64 = (pkgs.buildGoModule {
           pname = "http2-proxy-redir";
           version = "dev";
           src = ./.;
-          vendorSha256 = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58";
-        }).overrideAttrs ( old: old // { GOOS="linux"; GOARCH = "arm64"; CGO_ENABLED = 0; doCheck = false; } );
+          vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
+        }).overrideAttrs ( old: old // { GOPROXY="direct"; GOOS="linux"; GOARCH = "arm64"; CGO_ENABLED = 0; doCheck = false; } );
 
         packages.amd64 = (pkgs.buildGoModule {
           pname = "http2-proxy-redir";
           version = "dev";
           src = ./.;
-          vendorSha256 = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58";
-        }).overrideAttrs ( old: old // { GOOS="linux"; GOARCH = "amd64"; CGO_ENABLED = 0; doCheck = false; } );
+          vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
+        }).overrideAttrs ( old: old // { GOPROXY="direct"; GOOS="linux"; GOARCH = "amd64"; CGO_ENABLED = 0; doCheck = false; } );
 
         defaultPackage = packages.mipsle;
 

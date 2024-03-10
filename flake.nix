@@ -19,7 +19,6 @@
             version = "dev";
             src = ./.;
             vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
-            overrideModAttrs = (old: { GOPROXY = "direct"; });
           }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "mipsle"; CGO_ENABLED = 0; doCheck = false; });
 
           packages.arm64 = (pkgs.buildGoModule {
@@ -27,7 +26,6 @@
             version = "dev";
             src = ./.;
             vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
-            overrideModAttrs = (old: { GOPROXY = "direct"; });
           }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "arm64"; CGO_ENABLED = 0; doCheck = false; });
 
           packages.amd64 = (pkgs.buildGoModule {
@@ -35,7 +33,6 @@
             version = "dev";
             src = ./.;
             vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
-            overrideModAttrs = (old: { GOPROXY = "direct"; });
           }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "amd64"; CGO_ENABLED = 0; doCheck = false; });
 
           defaultPackage = packages.mipsle;

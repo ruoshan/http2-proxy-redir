@@ -14,26 +14,45 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         rec {
-          packages.mipsle = (pkgs.buildGoModule {
+          packages.mipsle = pkgs.buildGoModule {
             pname = "http2-proxy-redir";
             version = "dev";
             src = ./.;
             vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
-          }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "mipsle"; CGO_ENABLED = 0; doCheck = false; });
+            doCheck = false;
+            CGO_ENABLED = 0;
+            preBuild = ''
+              export GOOS=linux
+              export GOARCH=mipsle
+              export GOMIPS=softfloat
+            '';
+          };
 
-          packages.arm64 = (pkgs.buildGoModule {
+          packages.arm64 = pkgs.buildGoModule {
             pname = "http2-proxy-redir";
             version = "dev";
             src = ./.;
             vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
-          }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "arm64"; CGO_ENABLED = 0; doCheck = false; });
+            doCheck = false;
+            CGO_ENABLED = 0;
+            preBuild = ''
+              export GOOS=linux
+              export GOARCH=arm
+            '';
+          };
 
-          packages.amd64 = (pkgs.buildGoModule {
+          packages.amd64 = pkgs.buildGoModule {
             pname = "http2-proxy-redir";
             version = "dev";
             src = ./.;
             vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
-          }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "amd64"; CGO_ENABLED = 0; doCheck = false; });
+            doCheck = false;
+            CGO_ENABLED = 0;
+            preBuild = ''
+              export GOOS=linux
+              export GOARCH=amd64
+            '';
+          };
 
           defaultPackage = packages.mipsle;
 

@@ -22,7 +22,7 @@ func httpServer(listenPort int, test func(r *http.Request)) *http.Server {
 }
 
 func TestHttpProxy(t *testing.T) {
-	hp := NewHttpProxy("127.0.0.1:4433", "user", "passwd")
+	hp := NewHttpProxy("127.0.0.1:4433", "user", "passwd", "localhost", false)
 	s := httpServer(4433, func(r *http.Request) {
 		if r.ProtoMajor != 2 {
 			t.Fatalf("Expect http2, got %s", r.Proto)

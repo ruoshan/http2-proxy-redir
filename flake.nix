@@ -3,7 +3,7 @@
   nixConfig.bash-prompt = "[nix-develop:\\w]$ ";
 
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-22.11";
+    nixpkgs.url = "nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -18,21 +18,21 @@
             pname = "http2-proxy-redir";
             version = "dev";
             src = ./.;
-            vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
+            vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
           }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "mipsle"; CGO_ENABLED = 0; doCheck = false; });
 
           packages.arm64 = (pkgs.buildGoModule {
             pname = "http2-proxy-redir";
             version = "dev";
             src = ./.;
-            vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
+            vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
           }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "arm64"; CGO_ENABLED = 0; doCheck = false; });
 
           packages.amd64 = (pkgs.buildGoModule {
             pname = "http2-proxy-redir";
             version = "dev";
             src = ./.;
-            vendorHash = "sha256-Qdyz6YdAfCwOHy2g/EzjsJGg2M41fbE6M8ydaLcgc58=";
+            vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
           }).overrideAttrs (old: { GOOS = "linux"; GOARCH = "amd64"; CGO_ENABLED = 0; doCheck = false; });
 
           defaultPackage = packages.mipsle;

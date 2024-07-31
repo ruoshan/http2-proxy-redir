@@ -19,16 +19,22 @@ type ProxyGroup struct {
 	mu      sync.Mutex
 }
 
+// @addrs: "H1:IP:PORT#SNI,H2:IP:PORT#SNI"
 func NewProxyGroup(addrs string) *ProxyGroup {
 	lst := strings.Split(addrs, ",")
 	providers := make([]ProxyProvider, 0, len(lst))
 	for _, a := range lst {
-		addr := strings.SplitN(a, "#", 2)
+		addr := strings.SplitN(a, "#", 3)
 		sni := ""
 		if len(addr) == 2 {
 			sni = addr[1]
 		}
-		proxy := NewHttpProxy(addr[0], user, passwd, sni)
+		var proxy *HttpProxy
+		if strings.HasPrefix(addr[0], "H1") { // use HTTPS/1.1 CONNECT
+			proxy = NewHttpProxy(addr[0][3:], user, passwd, sni, true)
+		} else { // use HTTP2
+			proxy = NewHttpProxy(addr[0][3:], user, passwd, sni, true)
+		}
 		proxy.Config(
 			WithTimeout(timeout),
 			WithBackoffThreshold(backoff),

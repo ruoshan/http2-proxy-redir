@@ -105,20 +105,45 @@ type HttpProxy struct {
 	proxyAddr string
 	proxySNI  string
 	httpc     *http.Client
-	transport *http2.Transport
 	backoff   bool
 	bkoff_ch  chan struct{}
 	bkoff_n   int // threshold
 	timeout   time.Duration
 }
 
-func NewHttpProxy(proxyAddr, user, passwd, sni string) *HttpProxy {
+func NewHttpProxy(proxyAddr, user, passwd, sni string, use_http1 bool) *HttpProxy {
+	var tp http.RoundTripper
+	if use_http1 {
+		tp = newHttp1Transport(proxyAddr, sni)
+	} else {
+		tp = newHttp2Transport(proxyAddr, sni)
+	}
+	cli := &http.Client{
+		Transport: tp,
+	}
+	p := &HttpProxy{
+		user:      user,
+		passwd:    passwd,
+		proxyAddr: proxyAddr,
+		proxySNI:  sni,
+		httpc:     cli,
+		backoff:   false,
+		bkoff_ch:  make(chan struct{}, 5),
+		bkoff_n:   3,
+		timeout:   10 * time.Second,
+	}
+	go p.backoff_watchdog()
+	return p
+}
+
+func newHttp2Transport(proxyAddr string, sni string) *http2.Transport {
+	// Ignore the _addr, use proxyAddr instead
 	tp := &http2.Transport{
 		DialTLSContext: func(ctx context.Context, network, _addr string, cfg *tls.Config) (net.Conn, error) {
 			dialer := &net.Dialer{
 				Timeout: time.Duration(3) * time.Second,
 			}
-			// Ignore the _addr, use proxyAddr instead
+
 			return tls.DialWithDialer(dialer, network, proxyAddr, cfg)
 		},
 		TLSClientConfig: &tls.Config{
@@ -129,23 +154,22 @@ func NewHttpProxy(proxyAddr, user, passwd, sni string) *HttpProxy {
 		ReadIdleTimeout: 10 * time.Second,
 	}
 	MockClientConnPool(tp, proxyAddr)
-	cli := &http.Client{
-		Transport: tp,
+	return tp
+}
+
+func newHttp1Transport(proxyAddr string, sni string) *http.Transport {
+	return &http.Transport{
+		DialTLSContext: func(ctx context.Context, network, _addr string) (net.Conn, error) {
+			dialer := &net.Dialer{
+				Timeout: time.Duration(3) * time.Second,
+			}
+			cfg := &tls.Config{
+				InsecureSkipVerify: true,
+				ServerName:         sni,
+			}
+			return tls.DialWithDialer(dialer, network, proxyAddr, cfg)
+		},
 	}
-	p := &HttpProxy{
-		user:      user,
-		passwd:    passwd,
-		proxyAddr: proxyAddr,
-		proxySNI:  sni,
-		httpc:     cli,
-		transport: tp,
-		backoff:   false,
-		bkoff_ch:  make(chan struct{}, 5),
-		bkoff_n:   3,
-		timeout:   10 * time.Second,
-	}
-	go p.backoff_watchdog()
-	return p
 }
 
 // Configs helper

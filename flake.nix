@@ -20,7 +20,7 @@
             src = ./.;
             vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
             doCheck = false;
-            CGO_ENABLED = 0;
+            env.CGO_ENABLED = 0;
             preBuild = ''
               export GOOS=linux
               export GOARCH=mipsle
@@ -34,7 +34,7 @@
             src = ./.;
             vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
             doCheck = false;
-            CGO_ENABLED = 0;
+            env.CGO_ENABLED = 0;
             preBuild = ''
               export GOOS=linux
               export GOARCH=arm
@@ -47,7 +47,7 @@
             src = ./.;
             vendorHash = "sha256-0bBBhWtq0r2x5zmIAC6d9oK+G7FT2bC39bCUc2jxdtI=";
             doCheck = false;
-            CGO_ENABLED = 0;
+            env.CGO_ENABLED = 0;
             preBuild = ''
               export GOOS=linux
               export GOARCH=amd64
